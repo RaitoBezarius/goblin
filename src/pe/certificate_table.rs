@@ -3,9 +3,9 @@
 /// https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#the-attribute-certificate-table-image-only
 /// https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-win_certificate
 use crate::error;
-use log::warn;
 use scroll::{ctx, Pread, Pwrite};
 
+use alloc::borrow::Cow;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 
@@ -89,7 +89,7 @@ pub struct AttributeCertificate<'a> {
     pub length: u32,
     pub revision: AttributeCertificateRevision,
     pub certificate_type: AttributeCertificateType,
-    pub certificate: &'a [u8],
+    pub certificate: Cow<'a, [u8]>,
 }
 
 impl<'a> AttributeCertificate<'a> {
@@ -111,7 +111,7 @@ impl<'a> AttributeCertificate<'a> {
                 length: header.length,
                 revision: header.revision.try_into()?,
                 certificate_type: header.certificate_type.try_into()?,
-                certificate: bytes,
+                certificate: Cow::Borrowed(bytes),
             };
             // Moving past the certificate data.
             // Prevent the current_offset to wrap and ensure current_offset is strictly increasing.
@@ -137,7 +137,7 @@ impl<'a> ctx::TryIntoCtx<scroll::Endian> for AttributeCertificate<'a> {
         bytes.gwrite_with(self.length, offset, ctx)?;
         bytes.gwrite_with(self.revision as u16, offset, ctx)?;
         bytes.gwrite_with(self.certificate_type as u16, offset, ctx)?;
-        bytes.gwrite(self.certificate, offset)?;
+        bytes.gwrite(&*self.certificate, offset)?;
         // Extend by zero the buffer until it is aligned.
         // TODO(RaitoBezarius): is there a better method to do this?
         let aligned_offset = (*offset + 7) & !7;
