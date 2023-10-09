@@ -8,6 +8,7 @@ use scroll::{ctx, Pread, Pwrite};
 
 use alloc::string::ToString;
 use alloc::vec::Vec;
+use alloc::borrow::Cow;
 
 use super::utils::pad;
 
@@ -92,7 +93,7 @@ pub struct AttributeCertificate<'a> {
     pub length: u32,
     pub revision: AttributeCertificateRevision,
     pub certificate_type: AttributeCertificateType,
-    pub certificate: &'a [u8],
+    pub certificate: Cow<'a, [u8]>,
 }
 
 impl<'a> AttributeCertificate<'a> {
@@ -120,7 +121,7 @@ impl<'a> AttributeCertificate<'a> {
                 length: header.length,
                 revision: header.revision.try_into()?,
                 certificate_type: header.certificate_type.try_into()?,
-                certificate: bytes,
+                certificate: bytes.into(),
             };
             // Moving past the certificate data.
             // Prevent the current_offset to wrap and ensure current_offset is strictly increasing.
@@ -148,7 +149,7 @@ impl<'a> ctx::TryIntoCtx<scroll::Endian> for &AttributeCertificate<'a> {
         bytes.gwrite_with(self.certificate_type as u16, offset, ctx)?;
         // Extend by zero the buffer until it is aligned on a quadword (16 bytes).
         let maybe_certificate_padding = pad(self.certificate.len(), Some(16usize));
-        bytes.gwrite(self.certificate, offset)?;
+        bytes.gwrite(self.certificate.as_ref(), offset)?;
         if let Some(cert_padding) = maybe_certificate_padding {
             bytes.gwrite(&cert_padding[..], offset)?;
         }
