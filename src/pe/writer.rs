@@ -46,7 +46,8 @@ use super::PE;
 const MAX_NUMBER_OF_SECTIONS_PE: usize = 65279;
 
 fn certificate_contents_length<'cert>(certificates: &Vec<AttributeCertificate<'cert>>) -> u32 {
-    certificates.iter().map(|cert| cert.length).sum()
+    // Every certificate must be aligned on a quadword.
+    certificates.iter().map(|cert| align_to(cert.length, 8)).sum()
 }
 
 pub struct PEWriter<'pe, 'b> {
@@ -470,7 +471,7 @@ impl<'pe, 'b> PEWriter<'pe, 'b> {
         // Either, we are big enough already,
         // or we need to grow to the alignment of our current size + delta size.
         cert_table.virtual_address = self.file_size;
-        self.file_size += required_length + 1;
+        self.file_size += required_length;
         cert_table.size = required_length;
         // ensure self.file_size is big enough?
         // add_debug_table(debug_table);
