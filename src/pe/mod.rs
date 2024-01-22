@@ -42,7 +42,7 @@ use self::data_directories::DataDirectoryType;
 /// An analyzed PE32/PE32+ binary
 pub struct PE<'a> {
     /// Underlying bytes
-    bytes: &'a [u8],
+    pub bytes: &'a [u8],
     authenticode_excluded_sections: Option<authenticode::ExcludedSections>,
     /// The PE header
     pub header: header::Header,
